@@ -1,49 +1,28 @@
-import { usePlaceBetMutation } from "@/features/betting/hooks/usePlaceBetMutation";
-import { useBetHistoryQuery } from "@/features/history/hooks/useBetHistoryQuery";
+import { useGameStore } from "@/app/store/useGameStore";
+import {
+  selectBetAmount,
+  selectMartingaleEnabled,
+  selectSelectedCurrency,
+} from "@/app/store/gameStore.selectors";
+import { useHydrateGameSettings } from "@/features/user/hooks/useHydrateGameSettings";
 import { useUserQuery } from "@/features/user/hooks/useUserQuery";
 
 function App() {
-  const {
-    data: user,
-    isLoading: isUserLoading,
-    error: userError,
-  } = useUserQuery();
-  const {
-    data: history,
-    isLoading: isHistoryLoading,
-    error: historyError,
-  } = useBetHistoryQuery();
+  useHydrateGameSettings();
 
-  const betMutation = usePlaceBetMutation();
+  const { data: user } = useUserQuery();
 
-  const handleBet = async () => {
-    await betMutation.mutateAsync({
-      amount: 100,
-      currency: user?.settings.selectedCurrency ?? "BTC",
-    });
-  };
+  const selectedCurrency = useGameStore(selectSelectedCurrency);
+  const betAmount = useGameStore(selectBetAmount);
+  const martingaleEnabled = useGameStore(selectMartingaleEnabled);
 
-  if (isUserLoading || isHistoryLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <p>Loading...</p>
-      </main>
-    );
-  }
-
-  if (userError || historyError) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 text-white">
-        <p>
-          {userError instanceof Error
-            ? userError.message
-            : historyError instanceof Error
-              ? historyError.message
-              : "Something went wrong"}
-        </p>
-      </main>
-    );
-  }
+  const setSelectedCurrency = useGameStore(
+    (state) => state.setSelectedCurrency,
+  );
+  const setBetAmount = useGameStore((state) => state.setBetAmount);
+  const setMartingaleEnabled = useGameStore(
+    (state) => state.setMartingaleEnabled,
+  );
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -51,30 +30,47 @@ function App() {
         <h1 className="text-3xl font-bold">Crypto Bet Simulator</h1>
 
         <div className="mt-6 rounded-2xl bg-slate-900 p-4">
-          <h2 className="text-lg font-semibold">Balances</h2>
-          <pre className="mt-3 text-sm text-slate-300">
-            {JSON.stringify(user?.balances, null, 2)}
-          </pre>
+          <p>Persisted currency: {user?.settings.selectedCurrency}</p>
+          <p>UI currency: {selectedCurrency}</p>
+          <p>Bet amount: {betAmount || "empty"}</p>
+          <p>Martingale: {martingaleEnabled ? "on" : "off"}</p>
         </div>
 
-        <div className="mt-6 rounded-2xl bg-slate-900 p-4">
-          <h2 className="text-lg font-semibold">History</h2>
-          <pre className="mt-3 max-h-96 overflow-auto text-sm text-slate-300">
-            {JSON.stringify(history, null, 2)}
-          </pre>
+        <div className="mt-6 flex gap-3">
+          <button
+            className="rounded-lg bg-slate-700 px-4 py-2"
+            onClick={() => setSelectedCurrency("BTC")}
+          >
+            BTC
+          </button>
+          <button
+            className="rounded-lg bg-slate-700 px-4 py-2"
+            onClick={() => setSelectedCurrency("ETH")}
+          >
+            ETH
+          </button>
+          <button
+            className="rounded-lg bg-slate-700 px-4 py-2"
+            onClick={() => setSelectedCurrency("SOL")}
+          >
+            SOL
+          </button>
         </div>
 
-        <button
-          onClick={handleBet}
-          disabled={betMutation.isPending}
-          className="mt-6 rounded-xl bg-emerald-500 px-4 py-2 font-medium text-black disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {betMutation.isPending ? "Betting..." : "Place Test Bet"}
-        </button>
-
-        {betMutation.error instanceof Error && (
-          <p className="mt-4 text-red-400">{betMutation.error.message}</p>
-        )}
+        <div className="mt-6 flex gap-3">
+          <button
+            className="rounded-lg bg-emerald-600 px-4 py-2"
+            onClick={() => setBetAmount(50)}
+          >
+            Set Bet 50
+          </button>
+          <button
+            className="rounded-lg bg-amber-600 px-4 py-2"
+            onClick={() => setMartingaleEnabled(!martingaleEnabled)}
+          >
+            Toggle Martingale
+          </button>
+        </div>
       </div>
     </main>
   );
