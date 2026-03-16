@@ -4,9 +4,11 @@ import {
   selectAutoBetState,
   selectGameSettings,
 } from "@/app/store/gameStore.selectors";
+import { useUserQuery } from "@/features/user/hooks/useUserQuery";
 import { usePlaceBetMutation } from "./usePlaceBetMutation";
 import { getNextMartingaleAmount } from "../utils/martingale";
 import { shouldStopAutoBet } from "../utils/autoBet";
+import { validateBetInput, validateStopValue } from "../utils/validation";
 
 export function useBetSimulation() {
   const settings = useGameStore(selectGameSettings);
@@ -27,17 +29,39 @@ export function useBetSimulation() {
     (state) => state.resetAutoBetSession,
   );
 
+  const userQuery = useUserQuery();
   const placeBetMutation = usePlaceBetMutation();
+
+  const currentBalance =
+    userQuery.data?.balances[settings.selectedCurrency] ?? 0;
 
   const lastBet = useMemo(() => {
     return placeBetMutation.data?.createdBet ?? null;
   }, [placeBetMutation.data]);
 
-  const validateBetAmount = useCallback((amount: number) => {
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw new Error("Bet amount must be greater than zero.");
-    }
-  }, []);
+  const validateBetAmount = useCallback(
+    (amount: number) => {
+      const betError = validateBetInput({
+        amount,
+        balance: currentBalance,
+      });
+
+      if (betError) {
+        throw new Error(betError);
+      }
+
+      const stopWinError = validateStopValue(settings.stopWin);
+      if (stopWinError) {
+        throw new Error(stopWinError);
+      }
+
+      const stopLossError = validateStopValue(settings.stopLoss);
+      if (stopLossError) {
+        throw new Error(stopLossError);
+      }
+    },
+    [currentBalance, settings.stopLoss, settings.stopWin],
+  );
 
   const resolveManualBetAmount = useCallback(() => {
     return typeof settings.betAmount === "number" ? settings.betAmount : 0;
@@ -102,15 +126,14 @@ export function useBetSimulation() {
         )
       : initialAmount;
 
-    const currentBalance =
-      result.updatedUser.balances[settings.selectedCurrency];
+    const nextBalance = result.updatedUser.balances[settings.selectedCurrency];
 
     const shouldStop = shouldStopAutoBet({
       sessionProfitLoss: nextSessionProfitLoss,
       stopWin: settings.stopWin,
       stopLoss: settings.stopLoss,
       nextBetAmount,
-      currentBalance,
+      currentBalance: nextBalance,
     });
 
     if (shouldStop) {
@@ -141,13 +164,15 @@ export function useBetSimulation() {
   const canPlaceBet =
     !placeBetMutation.isPending &&
     typeof settings.betAmount === "number" &&
-    settings.betAmount > 0;
+    settings.betAmount > 0 &&
+    settings.betAmount <= currentBalance;
 
   const canStartAutoBet =
     !placeBetMutation.isPending &&
     !autoBet.isAutoBetting &&
     typeof settings.betAmount === "number" &&
-    settings.betAmount > 0;
+    settings.betAmount > 0 &&
+    settings.betAmount <= currentBalance;
 
   return {
     placeSingleBet,
@@ -161,6 +186,7 @@ export function useBetSimulation() {
     canStartAutoBet,
     autoBetState: autoBet,
     settings,
+    currentBalance,
     lastBet,
     error: placeBetMutation.error,
   };

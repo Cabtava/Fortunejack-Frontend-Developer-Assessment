@@ -1,73 +1,78 @@
-# React + TypeScript + Vite
+# Crypto Bet Simulator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React app simulates a cryptocurrency coin-flip betting dashboard with persistent balances, bet history, statistics, filtering, and auto-bet controls using a Martingale strategy.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- TanStack Query
+- Zustand
+- Zod
+- localStorage-backed mock API layer
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Coin flip bet simulator with BTC, ETH, and SOL
+- Starting balance of 1000 per currency
+- Manual betting flow
+- Auto-bet mode with Martingale strategy
+- Stop Win and Stop Loss controls
+- Persistent user data and bet history
+- Recent bet history limited to last 20 bets
+- Search and filter support for history
+- Statistics dashboard:
+  - Win/loss ratio
+  - Biggest win/loss
+  - Current profit/loss
+  - Total bets placed
 
-## Expanding the ESLint configuration
+## Architecture Notes
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### State Management
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- TanStack Query is used for async/server-like state:
+  - user data
+  - bet history
+  - bet mutations
+- Zustand is used for local UI state:
+  - current form inputs
+  - filters
+  - auto-bet session state
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Data Layer
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- A mock API layer simulates network delays and occasional failures.
+- localStorage is used as the persistence layer for user balances, settings, and bet history.
+- Zod is used to validate persisted data when reading from localStorage.
+
+### Business Logic
+
+- `useBetSimulation` handles betting flow and Martingale progression.
+- `useBetHistory` handles filtering and derived statistics.
+- Utility functions isolate calculation and validation rules.
+
+## Project Structure
+
+```txt
+src/
+  app/
+  components/
+  features/
+  lib/
+  pages/
+  services/
+  types/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Setup
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+npm install
+npm run dev
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Build
+
+npm run build
+npm run preview
